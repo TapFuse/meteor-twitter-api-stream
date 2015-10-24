@@ -18,6 +18,9 @@ Package.onUse(function(api) {
   api.use('tapfuse:twitter-api', S);
   //Files
   api.addFiles('twitter-api-streaming.js', S);
+  // Exports
+  api.export('tp_tweetCache');
+  api.export('tp_tweetQueries');
 });
 
 Package.onTest(function(api) {

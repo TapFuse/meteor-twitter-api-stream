@@ -1,10 +1,10 @@
-TweetCache = new Meteor.Collection('tweets');
-TweetQueryCache = new Meteor.Collection('tweetQueries');
+tp_tweetCache = new Meteor.Collection('tp_tp_tweetCache');
+tp_tweetQueries = new Meteor.Collection('tp_tweetQueries');
 var twtQueries = {};
 
 //Auto-streaming
 Meteor.startup(function () {
-  TweetQueryCache.find().observeChanges({
+  tp_tweetQueries.find().observeChanges({
 		added: function(id, doc) {
 			if (!twtQueries[doc.track]) {
 				Meteor.call('streamStatuses', {
@@ -34,7 +34,7 @@ function twitterCredentials (meteorUser) {
 
 //Insert used to cache tweets from stream.
 var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, track) {
-    TweetCache.insert({
+    tp_tweetCache.insert({
     	_id: tweet.id_str,
     	query_id: track,
     	created_at: tweet.created_at,
@@ -48,7 +48,7 @@ var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, track) {
     	entities: tweet.entities,
     	timestamp_ms: tweet.timestamp_ms
     });
-}, "Failed to insert tweet into TweetCache collection.");
+}, "Failed to insert tweet into tp_tweetCache collection.");
 
 Meteor.methods({
 	streamStatuses: function(data) {
@@ -81,6 +81,6 @@ Meteor.methods({
 		data = {
 			track: query
 		}
-		TweetQueryCache.insert(data);
+		tp_tweetQueries.insert(data);
 	}
 });
