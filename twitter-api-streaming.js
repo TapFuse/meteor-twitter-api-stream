@@ -31,11 +31,11 @@ function twitterCredentials (meteorUser) {
 }
 
 //Insert used to cache tweets from stream.
-var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, track) {
+var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, queryId) {
   tp_tweetCache.insert({
-    _id: tweet.id_str,
-    query_id: track,
-    created_at: tweet.created_at,
+    twitterId: tweet.id_str,
+    queryId: queryId,
+    createdAt: tweet.created_at,
     text: tweet.text,
     in_reply_to_screen_name: tweet.in_reply_to_screen_name,
     user: {
@@ -45,6 +45,10 @@ var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, track) {
     },
     entities: tweet.entities,
     timestamp_ms: tweet.timestamp_ms
+  }, function(err, res) {
+    if (err) {
+      console.log(err);
+    }
   });
 }, "Failed to insert tweet into tp_tweetCache collection.");
 
@@ -62,7 +66,7 @@ Meteor.methods({
       });
 
       stream.on('error', function(error) {
-        throw Meteor.Error( 500, "An error has occured while trying to stream");
+        throw Meteor.Error( 500, "An error has occured while trying to stream", error);
       });
     });
 	},
