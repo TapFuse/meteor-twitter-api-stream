@@ -33,9 +33,9 @@ function twitterCredentials (meteorUser) {
 //Insert used to cache tweets from stream.
 var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, queryId) {
   tp_tweetCache.insert({
-    twitterId: tweet.id_str,
+    id_str: tweet.id_str,
     queryId: queryId,
-    createdAt: tweet.created_at,
+    created_at: tweet.created_at,
     text: tweet.text,
     in_reply_to_screen_name: tweet.in_reply_to_screen_name,
     user: {
