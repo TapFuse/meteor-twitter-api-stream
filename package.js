@@ -1,6 +1,6 @@
 Package.describe({
   name: 'tapfuse:twitter-api-streaming',
-  version: '0.0.1',
+  version: '1.0.0',
   summary: 'npm twitter package wrapper',
   git: '',
   documentation: 'README.md'
@@ -13,14 +13,15 @@ var CS = [C, S];
 Package.onUse(function(api) {
   api.versionsFrom('1.1.0.3');
   //Dependency
-  api.use('accounts-twitter', S);
-  api.use('oauth1', S);
-  api.use('tapfuse:twitter-api', S);
+  api.use('tapfuse:collection-global@1.0.0');
+  api.use('accounts-twitter');
+  api.use('mongo');
+  api.use('oauth1');
+  api.use('tapfuse:twitter-api@1.0.0');
   //Files
   api.addFiles('twitter-api-streaming.js', S);
-  // Exports
-  api.export('tp_tweetCache');
-  api.export('tp_tweetQueries');
+  api.addFiles('globals-client.js', C);
+  api.addFiles('globals-server.js', S);
 });
 
 Package.onTest(function(api) {

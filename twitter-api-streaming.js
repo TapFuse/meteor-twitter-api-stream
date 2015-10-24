@@ -1,19 +1,17 @@
-tp_tweetCache = new Meteor.Collection('tp_tp_tweetCache');
-tp_tweetQueries = new Meteor.Collection('tp_tweetQueries');
 var twtQueries = {};
 
 //Auto-streaming
 Meteor.startup(function () {
-  tp_tweetQueries.find().observeChanges({
-		added: function(id, doc) {
+  tp_tweetQueries.find().observe({
+		added: function(doc) {
 			if (!twtQueries[doc.track]) {
 				Meteor.call('streamStatuses', {
-					_id: id,
+					_id: doc.id,
 					track: doc.track
 				});
 			}
 		},
-		removed: function(id, doc) {
+		removed: function(doc) {
 			if (twtQueries[doc.track]) {
 				twtQueries[doc.track].destroy();
 			}
@@ -58,8 +56,8 @@ Meteor.methods({
 		}
 
 		client.stream('statuses/filter', data, function(stream) {
-			twtQueries[data.track] = stream;
-		  stream.on('data', function(tweet) {
+      twtQueries[data.track] = stream;
+      stream.on('data', function(tweet) {
 		  	wrappedTweetInsert(tweet, data._id);
 		  });
 
