@@ -3,49 +3,49 @@ var twtQueries = {};
 //Auto-streaming
 Meteor.startup(function () {
   tp_tweetQueries.find().observe({
-		added: function(doc) {
-			if (!twtQueries[doc.track]) {
-				Meteor.call('streamStatuses', {
-					_id: doc.id,
-					track: doc.track
-				});
-			}
-		},
-		removed: function(doc) {
-			if (twtQueries[doc.track]) {
-				twtQueries[doc.track].destroy();
-			}
-		}
-	});
+    added: function(doc) {
+      if (!twtQueries[doc.track]) {
+        Meteor.call('streamStatuses', {
+          _id: doc._id,
+          track: doc.track,
+        });
+      }
+    },
+    removed: function(doc) {
+      if (twtQueries[doc.track]) {
+        twtQueries[doc.track].destroy();
+      }
+    }
+  });
 });
 
 //Create Twitter object with tokens
 function twitterCredentials (meteorUser) {
-		var config = Accounts.loginServiceConfiguration.findOne({service: 'twitter'});
-		return new TwitterApi({
-				consumer_key: config.consumerKey,
-				consumer_secret: config.secret,
-				access_token_key: '',
-				access_token_secret: ''
-		});
-	}
+  var config = Accounts.loginServiceConfiguration.findOne({service: 'twitter'});
+  return new TwitterApi({
+    consumer_key: config.consumerKey,
+    consumer_secret: config.secret,
+				access_token_key: config.access_token_key, // <-- fill me
+				access_token_secret: config.access_token_secret // <-- fill me
+      });
+}
 
 //Insert used to cache tweets from stream.
 var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, track) {
-    tp_tweetCache.insert({
-    	_id: tweet.id_str,
-    	query_id: track,
-    	created_at: tweet.created_at,
-    	text: tweet.text,
-    	in_reply_to_screen_name: tweet.in_reply_to_screen_name,
-    	user: {
-    		name: tweet.user.name,
-    		screen_name: tweet.user.screen_name,
-    		profile_image_url: tweet.user.profile_image_url
-    	},
-    	entities: tweet.entities,
-    	timestamp_ms: tweet.timestamp_ms
-    });
+  tp_tweetCache.insert({
+    _id: tweet.id_str,
+    query_id: track,
+    created_at: tweet.created_at,
+    text: tweet.text,
+    in_reply_to_screen_name: tweet.in_reply_to_screen_name,
+    user: {
+      name: tweet.user.name,
+      screen_name: tweet.user.screen_name,
+      profile_image_url: tweet.user.profile_image_url
+    },
+    entities: tweet.entities,
+    timestamp_ms: tweet.timestamp_ms
+  });
 }, "Failed to insert tweet into tp_tweetCache collection.");
 
 Meteor.methods({
@@ -58,13 +58,13 @@ Meteor.methods({
 		client.stream('statuses/filter', data, function(stream) {
       twtQueries[data.track] = stream;
       stream.on('data', function(tweet) {
-		  	wrappedTweetInsert(tweet, data._id);
-		  });
+        wrappedTweetInsert(tweet, data._id);
+      });
 
-		  stream.on('error', function(error) {
-			throw Meteor.Error( 500, "An error has occured while trying to stream");
-		  });
-		});
+      stream.on('error', function(error) {
+        throw Meteor.Error( 500, "An error has occured while trying to stream");
+      });
+    });
 	},
 	destroyOneStream: function(streamToDestroy){
 		streamToDestroy.destroy();
@@ -77,7 +77,7 @@ Meteor.methods({
 	},
 	addStreamingQuery: function (query) {
 		data = {
-			track: query
+			track: query,
 		}
 		tp_tweetQueries.insert(data);
 	}
