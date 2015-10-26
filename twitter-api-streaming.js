@@ -4,16 +4,17 @@ var twtQueries = {};
 Meteor.startup(function () {
   tp_tweetQueries.find().observe({
     added: function(doc) {
-      if (!twtQueries[doc.track]) {
+      if (!twtQueries[doc._id]) {
         Meteor.call('streamStatuses', {
           _id: doc._id,
           track: doc.track,
+          follow: doc.follow,
         });
       }
     },
     removed: function(doc) {
-      if (twtQueries[doc.track]) {
-        twtQueries[doc.track].destroy();
+      if (twtQueries[doc._id]) {
+        twtQueries[doc._id].destroy();
       }
     }
   });
@@ -25,9 +26,9 @@ function twitterCredentials (meteorUser) {
   return new TwitterApi({
     consumer_key: config.consumerKey,
     consumer_secret: config.secret,
-				access_token_key: config.access_token_key, // <-- fill me
-				access_token_secret: config.access_token_secret // <-- fill me
-      });
+    access_token_key: config.access_token_key, // <-- fill me
+    access_token_secret: config.access_token_secret // <-- fill me
+  });
 }
 
 //Insert used to cache tweets from stream.
@@ -58,11 +59,20 @@ Meteor.methods({
 		if(!data) {
 			throw Meteor.Error( 500, "'null' is not a valid stream query");
 		}
-
 		client.stream('statuses/filter', data, function(stream) {
-      twtQueries[data.track] = stream;
+      twtQueries[data._id] = stream;
       stream.on('data', function(tweet) {
-        wrappedTweetInsert(tweet, data._id);
+        var hasHashtag = false;
+        var hashtags = tweet.entities.hashtags;
+        for (var i = hashtags.length - 1; i >= 0; i--) {
+          if(hashtags[i].text.toLowerCase() == data.track.toLowerCase()) {
+            hasHashtag = true;
+            break;
+          }
+        }
+        if(hasHashtag || tweet.user.id == data.follow) {
+          wrappedTweetInsert(tweet, data._id);
+        }
       });
 
       stream.on('error', function(error) {
@@ -79,9 +89,10 @@ Meteor.methods({
 			twtQueries.splice(i, 1);
 		}
 	},
-	addStreamingQuery: function (query) {
+	addStreamingQuery: function (hashtags, users) {
 		data = {
-			track: query,
+			track: hashtags,
+      follow: users,
 		}
 		tp_tweetQueries.insert(data);
 	}
