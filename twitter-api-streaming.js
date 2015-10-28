@@ -76,7 +76,7 @@ Meteor.methods({
       });
 
       stream.on('error', function(error) {
-        throw Meteor.Error( 500, "An error has occured while trying to stream", error);
+        console.log('Streaming error', error);
       });
     });
 	},
