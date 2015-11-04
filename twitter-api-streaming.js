@@ -33,7 +33,7 @@ function twitterCredentials (meteorUser) {
 
 //Insert used to cache tweets from stream.
 var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, queryId) {
-  tp_tweetCache.insert({
+  tp_tweetCache.upsert({_id: tweet.id_str, queryId: queryId}, {$set: {
     id_str: tweet.id_str,
     queryId: queryId,
     created_at: tweet.created_at,
@@ -45,8 +45,9 @@ var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, queryId) {
       profile_image_url: tweet.user.profile_image_url
     },
     entities: tweet.entities,
-    timestamp_ms: tweet.timestamp_ms
-  }, function(err, res) {
+    timestamp_ms: tweet.timestamp_ms,
+    createdAt: new Date(),
+  }}, function(err, res) {
     if (err) {
       console.log(err);
     }
