@@ -4,12 +4,16 @@ var twtQueries = {};
 Meteor.startup(function () {
   tp_tweetQueries.find().observe({
     added: function(doc) {
-      if (!twtQueries[doc._id]) {
-        Meteor.call('streamStatuses', {
+      var tweetQuery = {
           _id: doc._id,
           track: doc.track,
           follow: doc.follow,
-        });
+      }
+      if(tp_tweetCache.find().count() == 0) {
+        Meteor.call('populateTweetCache', tweetQuery);
+      }
+      if (!twtQueries[doc._id]) {
+        Meteor.call('streamStatuses', tweetQuery);
       }
     },
     removed: function(doc) {
@@ -26,8 +30,8 @@ function twitterCredentials (meteorUser) {
   return new TwitterApi({
     consumer_key: config.consumerKey,
     consumer_secret: config.secret,
-    access_token_key: config.access_token_key, // <-- fill me
-    access_token_secret: config.access_token_secret // <-- fill me
+    access_token_key: '1736677940-e8N8Q3va5ZlWby2GSvEEQDVngnDcuAPF7sgouRY',
+    access_token_secret: 'Ny8YptHsTQ87vWUxOk4onZJtMALKLE9JvSqkHo1CHezJl'
   });
 }
 
@@ -55,12 +59,12 @@ var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, queryId) {
 }, "Failed to insert tweet into tp_tweetCache collection.");
 
 Meteor.methods({
-	streamStatuses: function(data) {
-		var client = twitterCredentials(Meteor.user());
-		if(!data) {
-			throw Meteor.Error( 500, "'null' is not a valid stream query");
-		}
-		client.stream('statuses/filter', data, function(stream) {
+  streamStatuses: function(data) {
+    var client = twitterCredentials(Meteor.user());
+    if(!data) {
+      throw Meteor.Error( 500, "'null' is not a valid stream query");
+    }
+    client.stream('statuses/filter', data, function(stream) {
       twtQueries[data._id] = stream;
       stream.on('data', function(tweet) {
         var hasHashtag = false;
@@ -80,21 +84,41 @@ Meteor.methods({
         console.log('Streaming error', error);
       });
     });
-	},
-	destroyOneStream: function(streamToDestroy){
-		streamToDestroy.destroy();
-	},
-	destroyStreams: function() {
-		for (var i in twtQueries) {
-			twtQueries[i].destroy();
-			twtQueries.splice(i, 1);
-		}
-	},
-	addStreamingQuery: function (hashtags, users) {
-		data = {
-			track: hashtags,
+  },
+  populateTweetCache: function(data) {
+    var client = twitterCredentials(Meteor.user());
+    if(!data) {
+      throw Meteor.Error( 500, "'null' is not a valid stream query");
+    }
+
+    var params = {
+      q: data.track,
+    };
+
+    client.get('search/tweets', params, function(error, tweets) {
+      if(!error){
+        for (var i = 0; i < tweets.statuses.length; i++) {
+          wrappedTweetInsert(tweets.statuses[i], data._id);
+        }
+      } else {
+        console.log(error);
+      }
+    });
+  },
+  destroyOneStream: function(streamToDestroy){
+    streamToDestroy.destroy();
+  },
+  destroyStreams: function() {
+    for (var i in twtQueries) {
+      twtQueries[i].destroy();
+      twtQueries.splice(i, 1);
+    }
+  },
+  addStreamingQuery: function (hashtags, users) {
+    data = {
+      track: hashtags,
       follow: users,
-		}
-		tp_tweetQueries.insert(data);
-	}
+    }
+    tp_tweetQueries.insert(data);
+  }
 });
