@@ -30,8 +30,8 @@ function twitterCredentials (meteorUser) {
   return new TwitterApi({
     consumer_key: config.consumerKey,
     consumer_secret: config.secret,
-    access_token_key: config.access_token_key,
-    access_token_secret: config.access_token_secret,
+    access_token_key: config.accessTokenKey ? config.accessTokenKey : config.access_token_key,
+    access_token_secret: config.accessTokenSecret ? config.accessTokenSecret : config.access_token_secret,
   });
 }
 
