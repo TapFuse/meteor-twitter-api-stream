@@ -91,19 +91,33 @@ Meteor.methods({
       throw Meteor.Error( 500, "'null' is not a valid stream query");
     }
 
-    var params = {
-      q: data.track,
-    };
-
-    client.get('search/tweets', params, function(error, tweets) {
-      if(!error){
-        for (var i = 0; i < tweets.statuses.length; i++) {
-          wrappedTweetInsert(tweets.statuses[i], data._id);
+    if(data.track) {
+      var params = {
+        q: query,
+      };
+      client.get('search/tweets', params, function(error, tweets) {
+        if(!error){
+          for (var i = 0; i < tweets.statuses.length; i++) {
+            wrappedTweetInsert(tweets.statuses[i], data._id);
+          }
+        } else {
+          console.log(error);
         }
-      } else {
-        console.log(error);
-      }
-    });
+      });
+    } else if (data.follow) {
+      var params = {
+        user_id: data.follow,
+      };
+      client.get('statuses/user_timeline', params, function(error, tweets) {
+        if(!error){
+          for (var i = 0; i < tweets.length; i++) {
+            wrappedTweetInsert(tweets[i], data._id);
+          }
+        } else {
+          console.log(error);
+        }
+      });
+    }
   },
   destroyOneStream: function(streamToDestroy){
     streamToDestroy.destroy();
