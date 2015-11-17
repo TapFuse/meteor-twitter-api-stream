@@ -51,6 +51,7 @@ var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, queryId) {
     entities: tweet.entities,
     timestamp_ms: tweet.timestamp_ms,
     createdAt: new Date(),
+    createdAtFormatted: new Date(tweet.created_at),
   }}, function(err, res) {
     if (err) {
       console.log(err);
