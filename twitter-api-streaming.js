@@ -1,3 +1,4 @@
+he = Npm.require("he");
 var twtQueries = {};
 
 //Auto-streaming
@@ -41,7 +42,7 @@ var wrappedTweetInsert = Meteor.bindEnvironment(function(tweet, queryId) {
     id_str: tweet.id_str,
     queryId: queryId,
     created_at: tweet.created_at,
-    text: tweet.text,
+    text: he.decode(tweet.text),
     in_reply_to_screen_name: tweet.in_reply_to_screen_name,
     user: {
       name: tweet.user.name,

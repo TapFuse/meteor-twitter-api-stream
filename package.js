@@ -1,6 +1,6 @@
 Package.describe({
   name: 'tapfuse:twitter-api-streaming',
-  version: '1.1.1',
+  version: '1.1.2',
   summary: 'Tweet caching',
   git: '',
   documentation: 'README.md'
@@ -22,6 +22,10 @@ Package.onUse(function(api) {
   api.addFiles('twitter-api-streaming.js', S);
   api.addFiles('globals-client.js', C);
   api.addFiles('globals-server.js', S);
+});
+
+Npm.depends({
+  "he": "0.5.0"
 });
 
 Package.onTest(function(api) {
