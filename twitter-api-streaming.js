@@ -95,7 +95,7 @@ Meteor.methods({
 
     if(data.track) {
       var params = {
-        q: query,
+        q: data.track,
       };
       client.get('search/tweets', params, function(error, tweets) {
         if(!error){
