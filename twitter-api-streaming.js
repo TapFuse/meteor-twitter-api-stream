@@ -1,5 +1,5 @@
 he = Npm.require('he');
-let twtQueries = {};
+const twtQueries = {};
 
 // Auto-streaming
 Meteor.startup(() => {
@@ -68,7 +68,7 @@ Meteor.methods({
     }
     client.stream('statuses/filter', data, (stream) => {
       twtQueries[data._id] = stream;
-      stream.on('data', function(tweet) {
+      stream.on('data', (tweet) => {
         let hasHashtag = false;
         const hashtags = tweet.entities.hashtags;
         for (let i = hashtags.length - 1; i >= 0; i--) {
@@ -123,12 +123,6 @@ Meteor.methods({
   },
   destroyOneStream: function(streamToDestroy) {
     streamToDestroy.destroy();
-  },
-  destroyStreams: function() {
-    for (let i in twtQueries) {
-      twtQueries[i].destroy();
-      twtQueries.splice(i, 1);
-    }
   },
   addStreamingQuery: function(hashtags, users) {
     data = {
