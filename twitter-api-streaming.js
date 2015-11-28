@@ -5,21 +5,29 @@ const twtQueries = {};
 Meteor.startup(() => {
   tp_tweetQueries.find().observe({
     added: function(doc) {
-      const tweetQuery = {
-        _id: doc._id,
-        track: doc.track,
-        follow: doc.follow,
-      };
-      if (tp_tweetCache.find().count() === 0) {
-        Meteor.call('populateTweetCache', tweetQuery);
+      if (tp_tweetCache.find({queryId: doc._id}).count() === 0) {
+        Meteor.call('populateTweetCache', doc);
       }
       if (!twtQueries[doc._id]) {
-        Meteor.call('streamStatuses', tweetQuery);
+        Meteor.call('streamStatuses', doc);
       }
     },
     removed: function(doc) {
       if (twtQueries[doc._id]) {
         twtQueries[doc._id].destroy();
+      }
+    },
+  });
+  tp_tweetCache.find().observe({
+    added: function(doc) {
+      const count = tp_tweetCache.find({queryId: doc.queryId}).count();
+      const tweetQuery = tp_tweetQueries.findOne({_id: doc.queryId});
+      if (count && tweetQuery && count > tweetQuery.cacheTweetCount) {
+        tp_tweetCache.findAndModify({
+          query: {queryId: doc.queryId},
+          sort: {createdAt: 1},
+          remove: true,
+        });
       }
     },
   });
@@ -37,10 +45,10 @@ function twitterCredentials(meteorUser) {
 }
 
 // Insert used to cache tweets from stream.
-const wrappedTweetInsert = Meteor.bindEnvironment((tweet, queryId) => {
-  tp_tweetCache.upsert({_id: tweet.id_str, queryId: queryId}, {$set: {
+const wrappedTweetInsert = Meteor.bindEnvironment((tweet, data) => {
+  tp_tweetCache.upsert({_id: tweet.id_str, queryId: data._id}, {$set: {
     id_str: tweet.id_str,
-    queryId: queryId,
+    queryId: data._id,
     created_at: tweet.created_at,
     text: he.decode(tweet.text),
     in_reply_to_screen_name: tweet.in_reply_to_screen_name,
@@ -71,14 +79,14 @@ Meteor.methods({
       stream.on('data', (tweet) => {
         let hasHashtag = false;
         const hashtags = tweet.entities.hashtags;
-        for (let i = hashtags.length - 1; i >= 0; i--) {
-          if (hashtags[i].text.toLowerCase() === data.track.toLowerCase()) {
+        for (const hashtag of hashtags) {
+          if (hashtag.text.toLowerCase() === data.track.toLowerCase()) {
             hasHashtag = true;
             break;
           }
         }
         if (hasHashtag || tweet.user.id === data.follow) {
-          wrappedTweetInsert(tweet, data._id);
+          wrappedTweetInsert(tweet, data);
         }
       });
 
@@ -99,8 +107,8 @@ Meteor.methods({
       };
       client.get('search/tweets', params, (error, tweets) => {
         if (!error) {
-          for (let i = 0; i < tweets.statuses.length; i++) {
-            wrappedTweetInsert(tweets.statuses[i], data._id);
+          for (const tweet of tweets.statuses) {
+            wrappedTweetInsert(tweet, data);
           }
         } else {
           console.log(error);
@@ -112,8 +120,8 @@ Meteor.methods({
       };
       client.get('statuses/user_timeline', params, (error, tweets) => {
         if (!error) {
-          for (let i = 0; i < tweets.length; i++) {
-            wrappedTweetInsert(tweets[i], data._id);
+          for (const tweet of tweets) {
+            wrappedTweetInsert(tweet, data);
           }
         } else {
           console.log(error);
@@ -124,11 +132,12 @@ Meteor.methods({
   destroyOneStream: function(streamToDestroy) {
     streamToDestroy.destroy();
   },
-  addStreamingQuery: function(hashtags, users) {
+  addStreamingQuery: function(hashtags, users, count) {
     data = {
       track: hashtags,
       follow: users,
       createdAt: new Date(),
+      cacheTweetCount: count,
     };
     tp_tweetQueries.insert(data);
   },
