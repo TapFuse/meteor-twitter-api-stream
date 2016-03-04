@@ -16,11 +16,11 @@ Package.onUse(function(api) {
   api.use('accounts-twitter');
   api.use('mongo');
   api.use('oauth1');
-  api.use('matb33:collection-hooks@1.0.4');
+  api.use('matb33:collection-hooks@0.8.1');
   //Dependency
   api.use('tapfuse:collection-global@1.0.0');
   api.use('tapfuse:twitter-api@1.0.0');
-  api.use('fongandrew:find-and-modify@0.2.1');
+  api.use('fongandrew:find-and-modify@0.2.2');
   //Files
   api.addFiles('lib/collection-server-tp_tweetCache.js', S);
   api.addFiles('lib/collection-server-tp_tweetQueries.js', S);
