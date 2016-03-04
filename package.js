@@ -16,7 +16,7 @@ Package.onUse(function(api) {
   api.use('accounts-twitter');
   api.use('mongo');
   api.use('oauth1');
-  api.use('matb33:collection-hooks@@1.0.4');
+  api.use('matb33:collection-hooks@1.0.4');
   //Dependency
   api.use('tapfuse:collection-global@1.0.0');
   api.use('tapfuse:twitter-api@1.0.0');
