@@ -1,6 +1,6 @@
 Package.describe({
   name: 'tapfuse:twitter-api-streaming',
-  version: '1.3.0',
+  version: '2.0.1',
   summary: 'Tweet caching',
   git: '',
   documentation: 'README.md'
@@ -18,7 +18,7 @@ Package.onUse(function(api) {
   api.use('oauth1');
   api.use('matb33:collection-hooks@0.8.1');
   //Dependency
-  api.use('tapfuse:collection-global@1.0.0');
+  api.use('tapfuse:collection-global@2.0.0');
   api.use('tapfuse:twitter-api@1.0.0');
   api.use('fongandrew:find-and-modify@0.2.2');
   //Files

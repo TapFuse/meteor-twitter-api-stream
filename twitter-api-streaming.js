@@ -6,10 +6,10 @@ Meteor.startup(() => {
   tp_tweetQueries.find().observe({
     added: function(doc) {
       if (tp_tweetCache.find({queryId: doc._id}).count() === 0) {
-        Meteor.call('populateTweetCache', doc);
+        populateTweetCache(doc);
       }
       if (!twtQueries[doc._id]) {
-        Meteor.call('streamStatuses', doc);
+        streamStatuses(doc);
       }
     },
     removed: function(doc) {
@@ -34,7 +34,7 @@ Meteor.startup(() => {
 });
 
 // Create Twitter object with tokens
-function twitterCredentials(meteorUser) {
+function twitterCredentials() {
   const config = Accounts.loginServiceConfiguration.findOne({service: 'twitter'});
   return new TwitterApi({
     consumer_key: config.consumerKey,
@@ -68,77 +68,78 @@ const wrappedTweetInsert = Meteor.bindEnvironment((tweet, data) => {
   });
 }, 'Failed to insert tweet into tp_tweetCache collection.');
 
-Meteor.methods({
-  streamStatuses: function(data) {
-    const client = twitterCredentials(Meteor.user());
-    if (!data) {
-      throw Meteor.Error( 500, "'null' is not a valid stream query");
-    }
-    client.stream('statuses/filter', data, (stream) => {
-      twtQueries[data._id] = stream;
-      stream.on('data', (tweet) => {
-        let hasHashtag = false;
-        const hashtags = tweet.entities.hashtags;
-        for (const hashtag of hashtags) {
-          if (hashtag.text.toLowerCase() === data.track.toLowerCase()) {
-            hasHashtag = true;
-            break;
-          }
+function streamStatuses(data) {
+  const client = twitterCredentials();
+  if (!data) {
+    throw Meteor.Error( 500, "'null' is not a valid stream query");
+  }
+  client.stream('statuses/filter', data, (stream) => {
+    twtQueries[data._id] = stream;
+    stream.on('data', (tweet) => {
+      let hasHashtag = false;
+      const hashtags = tweet.entities.hashtags;
+      for (const hashtag of hashtags) {
+        if (hashtag.text.toLowerCase() === data.track.toLowerCase()) {
+          hasHashtag = true;
+          break;
         }
-        if (hasHashtag || tweet.user.id === data.follow) {
+      }
+      if (hasHashtag || tweet.user.id === data.follow) {
+        wrappedTweetInsert(tweet, data);
+      }
+    });
+
+    stream.on('error', (error) => {
+      console.log('Streaming error', error);
+    });
+  });
+}
+
+function populateTweetCache(data) {
+  const client = twitterCredentials();
+  if (!data) {
+    throw Meteor.Error( 500, "'null' is not a valid stream query");
+  }
+
+  if (data.track) {
+    const params = {
+      q: data.track,
+    };
+    client.get('search/tweets', params, (error, tweets) => {
+      if (!error) {
+        for (const tweet of tweets.statuses) {
           wrappedTweetInsert(tweet, data);
         }
-      });
-
-      stream.on('error', (error) => {
-        console.log('Streaming error', error);
-      });
+      } else {
+        console.log(error);
+      }
     });
-  },
-  populateTweetCache: function(data) {
-    const client = twitterCredentials(Meteor.user());
-    if (!data) {
-      throw Meteor.Error( 500, "'null' is not a valid stream query");
-    }
-
-    if (data.track) {
-      const params = {
-        q: data.track,
-      };
-      client.get('search/tweets', params, (error, tweets) => {
-        if (!error) {
-          for (const tweet of tweets.statuses) {
-            wrappedTweetInsert(tweet, data);
-          }
-        } else {
-          console.log(error);
-        }
-      });
-    } else if (data.follow) {
-      const params = {
-        user_id: data.follow,
-      };
-      client.get('statuses/user_timeline', params, (error, tweets) => {
-        if (!error) {
-          for (const tweet of tweets) {
-            wrappedTweetInsert(tweet, data);
-          }
-        } else {
-          console.log(error);
-        }
-      });
-    }
-  },
-  destroyOneStream: function(streamToDestroy) {
-    streamToDestroy.destroy();
-  },
-  addStreamingQuery: function(hashtags, users, count) {
-    data = {
-      track: hashtags,
-      follow: users,
-      createdAt: new Date(),
-      cacheTweetCount: count,
+  } else if (data.follow) {
+    const params = {
+      user_id: data.follow,
     };
-    tp_tweetQueries.insert(data);
-  },
-});
+    client.get('statuses/user_timeline', params, (error, tweets) => {
+      if (!error) {
+        for (const tweet of tweets) {
+          wrappedTweetInsert(tweet, data);
+        }
+      } else {
+        console.log(error);
+      }
+    });
+  }
+}
+
+function destroyOneStream(streamToDestroy) {
+  streamToDestroy.destroy();
+}
+
+function addStreamingQuery(hashtags, users, count) {
+  data = {
+    track: hashtags,
+    follow: users,
+    createdAt: new Date(),
+    cacheTweetCount: count,
+  };
+  tp_tweetQueries.insert(data);
+}
