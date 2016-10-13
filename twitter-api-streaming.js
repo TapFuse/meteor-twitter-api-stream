@@ -1,47 +1,19 @@
 he = Npm.require('he');
 const twtQueries = {};
-
-// Auto-streaming
-Meteor.startup(() => {
-  tp_tweetQueries.find().observe({
-    added: function(doc) {
-      if (tp_tweetCache.find({queryId: doc._id}).count() === 0) {
-        populateTweetCache(doc);
-      }
-      if (!twtQueries[doc._id]) {
-        streamStatuses(doc);
-      }
-    },
-    removed: function(doc) {
-      if (twtQueries[doc._id]) {
-        twtQueries[doc._id].destroy();
-      }
-    },
-  });
-  tp_tweetCache.find().observe({
-    added: function(doc) {
-      const count = tp_tweetCache.find({queryId: doc.queryId}).count();
-      const tweetQuery = tp_tweetQueries.findOne({_id: doc.queryId});
-      if (count && tweetQuery && count > tweetQuery.cacheTweetCount) {
-        tp_tweetCache.findAndModify({
-          query: {queryId: doc.queryId},
-          sort: {createdAt: 1},
-          remove: true,
-        });
-      }
-    },
-  });
-});
-
+let client;
 // Create Twitter object with tokens
 function twitterCredentials() {
   const config = Accounts.loginServiceConfiguration.findOne({service: 'twitter'});
-  return new TwitterApi({
-    consumer_key: config.consumerKey,
-    consumer_secret: config.secret,
-    access_token_key: config.accessTokenKey ? config.accessTokenKey : config.access_token_key,
-    access_token_secret: config.accessTokenSecret ? config.accessTokenSecret : config.access_token_secret,
-  });
+  console.log('🍋', 'created client with config', config);
+  if (config) {
+    return new TwitterApi({
+      consumer_key: config.consumerKey,
+      consumer_secret: config.secret,
+      access_token_key: config.accessTokenKey ? config.accessTokenKey : config.access_token_key,
+      access_token_secret: config.accessTokenSecret ? config.accessTokenSecret : config.access_token_secret,
+    });
+  }
+  return false;
 }
 
 // Insert used to cache tweets from stream.
@@ -69,7 +41,6 @@ const wrappedTweetInsert = Meteor.bindEnvironment((tweet, data) => {
 }, 'Failed to insert tweet into tp_tweetCache collection.');
 
 function streamStatuses(data) {
-  const client = twitterCredentials();
   if (!data) {
     throw Meteor.Error( 500, "'null' is not a valid stream query");
   }
@@ -96,7 +67,7 @@ function streamStatuses(data) {
 }
 
 function populateTweetCache(data) {
-  const client = twitterCredentials();
+  // const client = twitterCredentials();
   if (!data) {
     throw Meteor.Error( 500, "'null' is not a valid stream query");
   }
@@ -143,3 +114,41 @@ function addStreamingQuery(hashtags, users, count) {
   };
   tp_tweetQueries.insert(data);
 }
+
+// Auto-streaming
+Meteor.startup(() => {
+  console.log('🍣', 'starting twitter obeserve');
+  client = twitterCredentials();
+  if (client) {
+    console.log('🍣', 'starting tp_tweetQueries obeserve');
+    tp_tweetQueries.find().observe({
+      added: function(doc) {
+        if (tp_tweetCache.find({queryId: doc._id}).count() === 0) {
+          populateTweetCache(doc);
+        }
+        if (!twtQueries[doc._id]) {
+          streamStatuses(doc);
+        }
+      },
+      removed: function(doc) {
+        if (twtQueries[doc._id]) {
+          twtQueries[doc._id].destroy();
+        }
+      },
+    });
+    console.log('🍣', 'starting tp_tweetCache obeserve');
+    tp_tweetCache.find().observe({
+      added: function(doc) {
+        const count = tp_tweetCache.find({queryId: doc.queryId}).count();
+        const tweetQuery = tp_tweetQueries.findOne({_id: doc.queryId});
+        if (count && tweetQuery && count > tweetQuery.cacheTweetCount) {
+          tp_tweetCache.findAndModify({
+            query: {queryId: doc.queryId},
+            sort: {createdAt: 1},
+            remove: true,
+          });
+        }
+      },
+    });
+  }
+});

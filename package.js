@@ -1,6 +1,6 @@
 Package.describe({
   name: 'tapfuse:twitter-api-streaming',
-  version: '2.0.1',
+  version: '2.3.0',
   summary: 'Tweet caching',
   git: '',
   documentation: 'README.md'
@@ -13,6 +13,8 @@ var CS = [C, S];
 Package.onUse(function(api) {
   api.versionsFrom('1.2.0.1');
   api.use('ecmascript');
+  api.use('accounts-base');
+  api.use('accounts-password@1.1.11');
   api.use('accounts-twitter');
   api.use('mongo');
   api.use('oauth1');
