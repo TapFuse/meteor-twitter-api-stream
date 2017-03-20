@@ -1,6 +1,6 @@
 Package.describe({
   name: 'tapfuse:twitter-api-streaming',
-  version: '6.1.0',
+  version: '6.2.0',
   summary: 'Tweet caching',
   git: '',
   documentation: 'README.md'
